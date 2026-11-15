@@ -1,0 +1,546 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Решись Авиа — Система динамического ценообразования</title>
+  <!-- Bootstrap 5 CSS (CDN) -->
+  <link
+    href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"
+    rel="stylesheet"
+    integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH"
+    crossorigin="anonymous"
+  />
+</head>
+<body class="bg-light d-flex flex-column min-vh-100">
+
+  <!-- 1. Навигационная панель -->
+  <nav class="navbar navbar-expand-lg navbar-dark bg-primary shadow-sm mb-4">
+    <div class="container">
+      <span class="navbar-brand fw-bold">✈️ Решись Авиа</span>
+
+      <!-- Блок пользователя (скрыт до входа в систему) -->
+      <div id="userPanel" class="d-none align-items-center gap-3 text-white ms-auto">
+        <span class="small">
+          Пользователь: <strong id="currentUser">—</strong>
+        </span>
+        <button id="logoutBtn" type="button" class="btn btn-sm btn-outline-light">
+          Выйти
+        </button>
+      </div>
+    </div>
+  </nav>
+
+  <main class="container flex-grow-1 pb-5">
+
+    <!-- 2. Блок входа и регистрации -->
+    <section id="authSection" class="row justify-content-center my-4">
+      <div class="col-12 col-sm-9 col-md-6 col-lg-4">
+        <div class="card shadow-sm border-0">
+          <div class="card-body p-4">
+            <h4 class="card-title text-center mb-1">Авторизация</h4>
+            <p class="text-muted text-center small mb-4">
+              Войдите или создайте учётную запись сотрудника
+            </p>
+
+            <!-- Контейнер для вывода ошибок авторизации -->
+            <div id="authAlert" class="alert alert-danger d-none py-2 small" role="alert"></div>
+
+            <form id="authForm">
+              <div class="mb-3">
+                <label for="authUsername" class="form-label">Логин</label>
+                <input
+                  type="text"
+                  id="authUsername"
+                  name="username"
+                  class="form-control"
+                  placeholder="Введите логин"
+                  minlength="3"
+                  required
+                />
+              </div>
+
+              <div class="mb-4">
+                <label for="authPassword" class="form-label">Пароль</label>
+                <div class="input-group">
+                  <input
+                    type="password"
+                    id="authPassword"
+                    name="password"
+                    class="form-control"
+                    placeholder="Введите пароль"
+                    minlength="4"
+                    required
+                  />
+                  <button
+                    id="togglePasswordBtn"
+                    type="button"
+                    class="btn btn-outline-secondary"
+                    title="Показать или скрыть пароль"
+                  >
+                    <svg id="eyeIcon" xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                      <path d="M16 8s-3-5.5-8-5.5S0 8 0 8s3 5.5 8 5.5S16 8 16 8M1.173 8a13 13 0 0 1 1.66-2.043C4.12 4.668 5.88 3.5 8 3.5s3.879 1.168 5.168 2.457A13 13 0 0 1 14.828 8q-.086.13-.195.288c-.335.48-.83 1.12-1.465 1.755C11.879 11.332 10.119 12.5 8 12.5s-3.879-1.168-5.168-2.457A13 13 0 0 1 1.172 8z"/>
+                      <path d="M8 5.5a2.5 2.5 0 1 0 0 5 2.5 2.5 0 0 0 0-5M4.5 8a3.5 3.5 0 1 1 7 0 3.5 3.5 0 0 1-7 0"/>
+                    </svg>
+                  </button>
+                </div>
+              </div>
+
+              <div class="d-grid gap-2">
+                <button id="loginBtn" type="submit" class="btn btn-primary">
+                  Войти
+                </button>
+                <button id="registerBtn" type="button" class="btn btn-outline-secondary">
+                  Зарегистрироваться
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 3. Основной рабочий экран (изначально скрыт классом d-none) -->
+    <section id="appSection" class="d-none">
+      <div class="row g-4">
+
+        <!-- Левая колонка: форма расчёта параметров рейса -->
+        <div class="col-12 col-lg-4">
+          <div class="card shadow-sm border-0 h-100">
+            <div class="card-body p-4">
+              <h5 class="card-title mb-3">Параметры рейса</h5>
+
+              <form id="forecastForm">
+                <div class="mb-3">
+                  <label for="origin" class="form-label">Пункт отправления</label>
+                  <input
+                    type="text"
+                    id="origin"
+                    name="origin"
+                    class="form-control"
+                    value="Москва"
+                    required
+                  />
+                </div>
+
+                <div class="mb-3">
+                  <label for="destination" class="form-label">Пункт назначения</label>
+                  <select
+                    id="destination"
+                    name="destination"
+                    class="form-select"
+                    required
+                  >
+                    <option value="" selected disabled>Выберите направление...</option>
+                  </select>
+                </div>
+
+                <div class="mb-3">
+                  <label for="date" class="form-label">Дата вылета</label>
+                  <input
+                    type="date"
+                    id="date"
+                    name="date"
+                    class="form-control"
+                    min="2026-06-01"
+                    max="2026-07-01"
+                    value="2026-06-12"
+                    required
+                  />
+                  <div class="form-text">Доступный период: 01.06.2026 — 01.07.2026</div>
+                </div>
+
+                <div class="mb-4">
+                  <label for="price" class="form-label">Цена билета, ₽</label>
+                  <input
+                    type="number"
+                    id="price"
+                    name="price"
+                    class="form-control"
+                    min="1"
+                    step="1"
+                    value="9000"
+                    required
+                  />
+                  <div id="priceHint" class="form-text"></div>
+                </div>
+
+                <button type="submit" class="btn btn-success w-100">
+                  Рассчитать прогноз
+                </button>
+              </form>
+
+              <!-- Контейнер для вывода ошибок расчёта -->
+              <div id="formError" class="alert alert-danger d-none mt-3 py-2 small" role="alert"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Правая колонка: карточки показателей и график -->
+        <div class="col-12 col-lg-8">
+          <!-- Три карточки ключевых показателей -->
+          <div class="row g-3 mb-4">
+            <div class="col-12 col-md-4">
+              <div class="card shadow-sm border-0 border-top border-primary border-3 text-center h-100">
+                <div class="card-body py-3">
+                  <div class="text-muted small mb-1">Мест в самолёте</div>
+                  <div id="resSeats" class="fs-3 fw-bold text-primary">—</div>
+                </div>
+              </div>
+            </div>
+
+            <div class="col-12 col-md-4">
+              <div class="card shadow-sm border-0 border-top border-success border-3 text-center h-100">
+                <div class="card-body py-3">
+                  <div class="text-muted small mb-1">Прогноз продаж</div>
+                  <div id="resSold" class="fs-3 fw-bold text-success">—</div>
+                </div>
+              </div>
+            </div>
+
+            <div class="col-12 col-md-4">
+              <div class="card shadow-sm border-0 border-top border-secondary border-3 text-center h-100">
+                <div class="card-body py-3">
+                  <div class="text-muted small mb-1">Желают по медиане</div>
+                  <div id="resDesired" class="fs-3 fw-bold text-dark">—</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Контейнер графика распределения спроса по квантилям -->
+          <div class="card shadow-sm border-0">
+            <div class="card-body p-4">
+              <h6 class="card-title mb-3">
+                Распределение спроса по сценариям (квантили 0.1 — 0.9)
+              </h6>
+              <div>
+                <canvas id="demandChart" height="140"></canvas>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+  </main>
+
+  <!-- Библиотека Chart.js (CDN) -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+  <!-- Логика приложения «Решись Авиа» -->
+  <script>
+    const API_BASE =
+      window.location.protocol.startsWith("http") && window.location.port === "8000"
+        ? ""
+        : "http://127.0.0.1:8000";
+
+    let authToken = localStorage.getItem("resis_avia_token") || null;
+    let authUsername = localStorage.getItem("resis_avia_user") || null;
+    let destinationsList = [];
+    let demandChartInstance = null;
+
+    // Ссылки на DOM-элементы
+    const authSection = document.getElementById("authSection");
+    const appSection = document.getElementById("appSection");
+    const userPanel = document.getElementById("userPanel");
+    const currentUserEl = document.getElementById("currentUser");
+    const logoutBtn = document.getElementById("logoutBtn");
+
+    const authForm = document.getElementById("authForm");
+    const authUsernameInput = document.getElementById("authUsername");
+    const authPasswordInput = document.getElementById("authPassword");
+    const togglePasswordBtn = document.getElementById("togglePasswordBtn");
+    const eyeIcon = document.getElementById("eyeIcon");
+    const registerBtn = document.getElementById("registerBtn");
+    const authAlert = document.getElementById("authAlert");
+
+    const forecastForm = document.getElementById("forecastForm");
+    const originInput = document.getElementById("origin");
+    const destinationSelect = document.getElementById("destination");
+    const dateInput = document.getElementById("date");
+    const priceInput = document.getElementById("price");
+    const priceHint = document.getElementById("priceHint");
+    const formError = document.getElementById("formError");
+
+    const resSeats = document.getElementById("resSeats");
+    const resSold = document.getElementById("resSold");
+    const resDesired = document.getElementById("resDesired");
+
+    // Переключение видимости пароля
+    const EYE_OPEN_SVG = `
+      <path d="M16 8s-3-5.5-8-5.5S0 8 0 8s3 5.5 8 5.5S16 8 16 8M1.173 8a13 13 0 0 1 1.66-2.043C4.12 4.668 5.88 3.5 8 3.5s3.879 1.168 5.168 2.457A13 13 0 0 1 14.828 8q-.086.13-.195.288c-.335.48-.83 1.12-1.465 1.755C11.879 11.332 10.119 12.5 8 12.5s-3.879-1.168-5.168-2.457A13 13 0 0 1 1.172 8z"/>
+      <path d="M8 5.5a2.5 2.5 0 1 0 0 5 2.5 2.5 0 0 0 0-5M4.5 8a3.5 3.5 0 1 1 7 0 3.5 3.5 0 0 1-7 0"/>
+    `;
+
+    const EYE_SLASH_SVG = `
+      <path d="M13.359 11.238C15.06 9.72 16 8 16 8s-3-5.5-8-5.5a7 7 0 0 0-2.79.588l.77.771A6 6 0 0 1 8 3.5c2.12 0 3.879 1.168 5.168 2.457A13 13 0 0 1 14.828 8q-.086.13-.195.288c-.335.48-.83 1.12-1.465 1.755q-.247.248-.517.486z"/>
+      <path d="M11.297 9.176a3.5 3.5 0 0 0-4.474-4.474l.823.823a2.5 2.5 0 0 1 2.829 2.829zm-2.943 1.299.822.822a3.5 3.5 0 0 1-4.474-4.474l.823.823a2.5 2.5 0 0 0 2.829 2.829"/>
+      <path d="M3.35 5.47q-.27.24-.518.487A13 13 0 0 0 1.172 8l.195.288c.335.48.83 1.12 1.465 1.755C4.121 11.332 5.881 12.5 8 12.5c.716 0 1.39-.133 2.02-.36l.77.772A7 7 0 0 1 8 13.5C3 13.5 0 8 0 8s.939-1.721 2.641-3.238l.708.709zm10.296 8.884-12-12 .708-.708 12 12z"/>
+    `;
+
+    togglePasswordBtn.addEventListener("click", () => {
+      const isHidden = authPasswordInput.type === "password";
+      authPasswordInput.type = isHidden ? "text" : "password";
+      eyeIcon.innerHTML = isHidden ? EYE_SLASH_SVG : EYE_OPEN_SVG;
+    });
+
+    // Вспомогательные функции отображения ошибок
+    function showAlert(element, message) {
+      element.textContent = message;
+      element.classList.remove("d-none");
+    }
+
+    function hideAlert(element) {
+      element.textContent = "";
+      element.classList.add("d-none");
+    }
+
+    // Переключение между экраном входа и рабочим интерфейсом
+    function updateUIState() {
+      if (authToken && authUsername) {
+        authSection.classList.add("d-none");
+        appSection.classList.remove("d-none");
+        userPanel.classList.remove("d-none");
+        userPanel.classList.add("d-flex");
+        currentUserEl.textContent = authUsername;
+      } else {
+        authSection.classList.remove("d-none");
+        appSection.classList.add("d-none");
+        userPanel.classList.add("d-none");
+        userPanel.classList.remove("d-flex");
+        currentUserEl.textContent = "—";
+      }
+    }
+
+    // Выход из учётной записи
+    function logout() {
+      authToken = null;
+      authUsername = null;
+      localStorage.removeItem("resis_avia_token");
+      localStorage.removeItem("resis_avia_user");
+      hideAlert(formError);
+      updateUIState();
+    }
+
+    logoutBtn.addEventListener("click", logout);
+
+    // 1. Загрузка метаданных (/api/meta) и заполнение списка направлений
+    async function loadMetadata() {
+      try {
+        const response = await fetch(`${API_BASE}/api/meta`);
+        if (!response.ok) {
+          throw new Error(`Ошибка сервера (${response.status}) при загрузке справочника маршрутов.`);
+        }
+
+        const meta = await response.json();
+        destinationsList = meta.destinations || [];
+
+        destinationSelect.innerHTML = "";
+        destinationsList.forEach((item, index) => {
+          const option = document.createElement("option");
+          option.value = item.destination;
+          option.textContent = `${item.destination} (${item.route})`;
+          if (index === 0) option.selected = true;
+          destinationSelect.appendChild(option);
+        });
+
+        applyBasePriceForSelectedDestination();
+      } catch (err) {
+        showAlert(authAlert, `Не удалось подключиться к серверу API: ${err.message}`);
+        showAlert(formError, `Не удалось загрузить список направлений: ${err.message}`);
+      }
+    }
+
+    // Подстановка base_price при смене города назначения
+    function applyBasePriceForSelectedDestination() {
+      const selectedCity = destinationSelect.value;
+      const routeInfo = destinationsList.find((d) => d.destination === selectedCity);
+
+      if (routeInfo) {
+        priceInput.value = routeInfo.base_price;
+        priceHint.textContent = `Базовая цена: ${routeInfo.base_price} ₽ (допустимый диапазон: ${routeInfo.price_min}–${routeInfo.price_max} ₽)`;
+      } else {
+        priceHint.textContent = "";
+      }
+    }
+
+    destinationSelect.addEventListener("change", applyBasePriceForSelectedDestination);
+
+    // 2. Регистрация и авторизация (/api/login и /api/register)
+    async function submitAuth(endpoint) {
+      hideAlert(authAlert);
+
+      const username = authUsernameInput.value.trim();
+      const password = authPasswordInput.value;
+
+      if (!username || !password) {
+        showAlert(authAlert, "Введите логин и пароль.");
+        return;
+      }
+
+      try {
+        const response = await fetch(`${API_BASE}/api/${endpoint}`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ username, password }),
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+          throw new Error(data.detail || "Ошибка авторизации.");
+        }
+
+        authToken = data.token;
+        authUsername = data.username;
+        localStorage.setItem("resis_avia_token", authToken);
+        localStorage.setItem("resis_avia_user", authUsername);
+
+        authForm.reset();
+        authPasswordInput.type = "password";
+        eyeIcon.innerHTML = EYE_OPEN_SVG;
+        updateUIState();
+      } catch (err) {
+        showAlert(authAlert, err.message);
+      }
+    }
+
+    authForm.addEventListener("submit", (e) => {
+      e.preventDefault();
+      submitAuth("login");
+    });
+
+    registerBtn.addEventListener("click", () => {
+      submitAuth("register");
+    });
+
+    // 3. Расчёт прогноза спроса (/api/predict)
+    forecastForm.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      hideAlert(formError);
+
+      const payload = {
+        origin: originInput.value.trim(),
+        destination: destinationSelect.value,
+        date: dateInput.value,
+        price: parseFloat(priceInput.value),
+      };
+
+      try {
+        const response = await fetch(`${API_BASE}/api/predict`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${authToken}`,
+          },
+          body: JSON.stringify(payload),
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+          if (response.status === 401) {
+            logout();
+            showAlert(authAlert, data.detail || "Сессия истекла. Войдите в систему заново.");
+            return;
+          }
+          throw new Error(data.detail || "Не удалось выполнить расчёт.");
+        }
+
+        resSeats.textContent = `${data.seats} мест`;
+        resSold.textContent = `${Math.round(data.sold)} бил.`;
+        resDesired.textContent = `${Math.round(data.desired)} чел.`;
+
+        renderDemandChart(data);
+      } catch (err) {
+        showAlert(formError, err.message);
+      }
+    });
+
+    // 4. Построение комбинированного графика Chart.js
+    // 4. Построение комбинированного графика Chart.js
+    function renderDemandChart(data) {
+      const ctx = document.getElementById("demandChart").getContext("2d");
+
+      if (demandChartInstance) {
+        demandChartInstance.destroy();
+      }
+
+      const labels = data.distribution.map((item) => `Квантиль ${item.quantile}`);
+      const desiredValues = data.distribution.map((item) => item.desired);
+      const seatsLineValues = data.distribution.map(() => data.seats);
+
+      const barColors = data.distribution.map((item) =>
+        item.quantile === "0.5" ? "rgba(25, 135, 84, 0.85)" : "rgba(13, 110, 253, 0.55)"
+      );
+      const borderColors = data.distribution.map((item) =>
+        item.quantile === "0.5" ? "rgb(25, 135, 84)" : "rgb(13, 110, 253)"
+      );
+
+      demandChartInstance = new Chart(ctx, {
+        type: "bar",
+        data: {
+          labels,
+          datasets: [
+            {
+              type: "bar",
+              label: "Спрос (желают)",
+              data: desiredValues,
+              backgroundColor: barColors,
+              borderColor: borderColors,
+              borderWidth: 1,
+              borderRadius: 4,
+              order: 2,
+            },
+            {
+              type: "line",
+              label: "Вместимость",
+              data: seatsLineValues,
+              borderColor: "rgb(220, 53, 69)",
+              backgroundColor: "rgb(220, 53, 69)",
+              borderWidth: 2,
+              borderDash: [6, 6],
+              pointRadius: 0,
+              pointHoverRadius: 0,
+              fill: false,
+              order: 1,
+            },
+          ],
+        },
+        options: {
+          responsive: true,
+          interaction: {
+            mode: "nearest",
+            axis: "x",
+            intersect: false,
+          },
+          plugins: {
+            tooltip: {
+              position: "nearest",
+              callbacks: {
+                label: (context) => {
+                  const val = Math.round(context.parsed.y);
+                  return ` ${context.dataset.label}: ${val} чел.`;
+                },
+                afterLabel: (context) => {
+                  if (context.datasetIndex === 0 && data.distribution[context.dataIndex]?.quantile === "0.5") {
+                    return " (Медианный прогноз)";
+                  }
+                  return "";
+                },
+              },
+            },
+          },
+        },
+      });
+    }
+
+    document.addEventListener("DOMContentLoaded", () => {
+      updateUIState();
+      loadMetadata();
+    });
+  </script>
+</body>
+</html>
