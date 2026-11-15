@@ -279,7 +279,7 @@ def predict(req: ForecastRequest, authorization: str | None = Header(default=Non
 
     median_base_demand = float(flight["0.5_base_demand"])
 
-    desired_median = median_base_demand - sensitivity * (req.price - base_price)
+    desired_median = max(0.0, median_base_demand - sensitivity * (req.price - base_price))
 
     sold_median = min(seats, max(0.0, desired_median))
 
