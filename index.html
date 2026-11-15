@@ -231,10 +231,7 @@
 
   <!-- Логика приложения «Решись Авиа» -->
   <script>
-    const API_BASE =
-      window.location.protocol.startsWith("http") && window.location.port === "8000"
-        ? ""
-        : "http://127.0.0.1:8000";
+    const API_BASE = window.location.protocol.startsWith("http") ? "" : "http://127.0.0.1:8000";
 
     let authToken = localStorage.getItem("resis_avia_token") || null;
     let authUsername = localStorage.getItem("resis_avia_user") || null;
